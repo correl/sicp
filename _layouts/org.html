@@ -1,0 +1,21 @@
+---
+layout: default
+---
+
+{% assign scheme_filename = page.url | replace: '.html','.scheme' | remove: '/org/' %}
+{% assign scheme_url = scheme_filename | prepend: '/' | prepend: site.baseurl %}
+
+<div class="post">
+
+  <header class="post-header">
+    <h1>{{ page.title }}</h1>
+    <hr />
+    Download the code for this chapter: <a class="post-link" href="{{ scheme_url }}">{{ scheme_filename }}</a>
+    <hr />
+  </header>
+
+  <article class="post-content">
+  {{ content }}
+  </article>
+
+</div>

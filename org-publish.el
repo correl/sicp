@@ -14,12 +14,6 @@
          :html-extension "html"
          :with-toc nil
          :body-only t)
-        ("org-sicp-code"
-         :base-directory "."
-         :base-extension "scm\\|scheme"
-         :publishing-directory "./code"
-         :recursive nil
-         :publishing-function org-publish-attachment)
-        ("sicp" :components ("org-sicp" "org-sicp-code"))))
+        ("sicp" :components ("org-sicp"))))
 
 (org-publish "sicp" 't)
