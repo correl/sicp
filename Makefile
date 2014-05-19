@@ -1,8 +1,13 @@
-.PHONY: default all org org-code jekyll serve
+.PHONY: default all clean org org-code jekyll serve
 
 default: all
 
 all: org org-code jekyll
+
+clean:
+	rm -rf	_site \
+		_org \
+		*.scheme
 
 org:
 	emacs --batch -u ${USER} -l org-publish.el
