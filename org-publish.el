@@ -10,6 +10,7 @@
          :recursive t
          :publishing-function org-html-publish-to-html
          :headline-levels 4
+         :section-numbers nil
          :html-extension "html"
          :with-toc nil
          :body-only t)
