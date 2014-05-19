@@ -12,6 +12,7 @@
          :headline-levels 4
          :section-numbers nil
          :html-extension "html"
+         :htmlized-source t
          :with-toc nil
          :body-only t)
         ("sicp" :components ("org-sicp"))))
