@@ -1,0 +1,24 @@
+---
+layout: default
+---
+
+<div class="home">
+
+  <h1>Org Files</h1>
+  <ul class="posts">
+    {% for org in site.org %}
+    <li>
+      <a class="post-link" href="{{ org.url | prepend: site.baseurl }}">
+        {% if org.title %}
+        {{ org.title }}
+        {% else %}
+        {{ org.url }}
+        {% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <p class="rss-subscribe">subscribe <a href="{{ "/feed.xml" | prepend: site.baseurl }}">via RSS</a></p>
+
+</div>
