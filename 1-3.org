@@ -1,0 +1,272 @@
+#+BEGIN_HTML
+---
+title: 1.3 - Formulating Abstractions with Higher-Order Procedures
+layout: org
+---
+#+END_HTML
+
+* Procedures as Arguments
+
+  #+BEGIN_SRC scheme :tangle yes
+    ;; ===================================================================
+    ;; 1.3.1: Procedures as Arguments
+    ;; ===================================================================
+
+    (define (sum term a next b)
+      (if (> a b)
+          0
+          (+ (term a)
+             (sum term (next a) next b))))
+
+    (define (inc n) (+ n 1))
+
+    (define (cube n) (* n n n))
+
+    (define (sum-cubes a b)
+      (sum cube a inc b))
+
+    (define (identity x) x)
+
+    (define (sum-integers a b)
+      (sum identity a inc b))
+
+    (define (pi-sum a b)
+      (define (pi-term x)
+        (/ 1.0 (* x (+ x 2))))
+      (define (pi-next x)
+        (+ x 4))
+      (sum pi-term a pi-next b))
+
+    (define (integral f a b dx)
+      (define (add-dx x) (+ x dx))
+      (* (sum f (+ a (/ dx 2.0)) add-dx b)
+         dx))
+
+  #+END_SRC
+
+** Exercise 1.29
+   Simpson's Rule is a more accurate method of numerical integration
+   than the method illustrated above.  Using Simpson's Rule, the
+   integral of a function f between a and b is approximated as
+
+   #+BEGIN_EXAMPLE
+     h
+     - (y_0 + 4y_1 + 2y_2 + 4y_3 + 2y_4 + ... + 2y_(n-2) + 4y_(n-1) + y_n)
+     3
+   #+END_EXAMPLE
+   
+   where h = (b - a)/n, for some even integer n, and y_k = f(a + kh).
+   (Increasing n increases the accuracy of the approximation.)  Define
+   a procedure that takes as arguments f, a, b, and n and returns the
+   value of the integral, computed using Simpson's Rule.  Use your
+   procedure to integrate `cube' between 0 and 1 (with n = 100 and n =
+   1000), and compare the results to those of the `integral' procedure
+   shown above.
+
+   ----------------------------------------------------------------------
+
+   #+BEGIN_SRC scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 1.29
+     ;; -------------------------------------------------------------------
+
+     (define (simpson-integral f a b n)
+       (define h (/ (- b a) n))
+       (define (y k)
+         (f (+ a (* k h))))
+       (define (simpson-term x)
+         (cond ((= x 0) (y x))
+               ((= x n) (y x))
+               ((even? x) (* 2 (y x)))
+               ((odd? x) (* 4 (y x)))))
+       (* (/ h 3) (sum simpson-term 0 inc n)))
+   #+END_SRC
+   
+** Exercise 1.30
+   The `sum' procedure above generates a linear recursion.  The
+   procedure can be rewritten so that the sum is performed
+   iteratively.  Show how to do this by filling in the missing
+   expressions in the following definition:
+
+   #+BEGIN_SRC scheme
+     (define (sum term a next b)
+       (define (iter a result)
+         (if <??>
+             <??>
+             (iter <??> <??>)))
+       (iter <??> <??>))
+   #+END_SRC
+
+   ---
+
+   #+BEGIN_SRC scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 1.30
+     ;; -------------------------------------------------------------------
+
+     (define (sum term a next b)
+       (define (iter a result)
+         (if (> a b)
+             result
+             (iter (next a) (+ (term a) result))))
+       (iter a 0))
+
+   #+END_SRC
+
+** Exercise 1.31
+   a. The `sum' procedure is only the simplest of a vast number of
+      similar abstractions that can be captured as higher-order
+      procedures.(3)  Write an analogous procedure called `product'
+      that returns the product of the values of a function at
+      points over a given range.  Show how to define `factorial' in
+      terms of `product'.  Also use `product' to compute
+      approximations to [pi] using the formula(4)
+
+      #+BEGIN_EXAMPLE
+        pi   2 * 4 * 4 * 6 * 6 * 8 ...
+        -- = -------------------------
+         4   3 * 3 * 5 * 5 * 7 * 7 ...
+      #+END_EXAMPLE
+      
+   b. If your `product' procedure generates a recursive process,
+      write one that generates an iterative process.  If it
+      generates an iterative process, write one that generates a
+      recursive process.
+
+   ----------------------------------------------------------------------
+
+   #+BEGIN_SRC scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Example 1.31
+     ;; -------------------------------------------------------------------
+
+     (define (product-recursive term a next b)
+       (if (> a b)
+           1
+           (* (term a)
+              (product-recursive term (next a) next b))))
+
+     (define (product-iter term a next b)
+       (define (iter a result)
+         (if (> a b)
+             result
+             (iter (next a) (* (term a) result))))
+       (iter a 1))
+   #+END_SRC
+   
+** Exercise 1.32
+   a. Show that `sum' and `product' (*Note Exercise 1-31::) are
+      both special cases of a still more general notion called
+      `accumulate' that combines a collection of terms, using some
+      general accumulation function:
+
+      #+BEGIN_SRC scheme
+        (accumulate combiner null-value term a next b)
+      #+END_SRC
+
+      `Accumulate' takes as arguments the same term and range
+      specifications as `sum' and `product', together with a
+      `combiner' procedure (of two arguments) that specifies how
+      the current term is to be combined with the accumulation of
+      the preceding terms and a `null-value' that specifies what
+      base value to use when the terms run out.  Write `accumulate'
+      and show how `sum' and `product' can both be defined as
+      simple calls to `accumulate'.
+
+   b. If your `accumulate' procedure generates a recursive process,
+      write one that generates an iterative process.  If it
+      generates an iterative process, write one that generates a
+      recursive process.
+
+   ----------------------------------------------------------------------
+
+   #+BEGIN_SRC scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Example 1.32
+     ;; -------------------------------------------------------------------
+
+     (define (accumulate-recursive combiner null-value term a next b)
+       (if (> a b)
+           null-value
+           (combiner (term a)
+                     (accumulate-recursive combiner null-value term (next a) next b))))
+
+     (define (accumulate-iter combiner null-value term a next b)
+       (define (iter a result)
+         (if (> a b)
+             result
+             (iter (next a) (combiner (term a) result))))
+       (iter a null-value))
+   #+END_SRC
+   
+** Exercise 1.33
+   You can obtain an even more general version of
+   `accumulate' (*Note Exercise 1-32::) by introducing the notion of
+   a "filter" on the terms to be combined.  That is, combine only
+   those terms derived from values in the range that satisfy a
+   specified condition.  The resulting `filtered-accumulate'
+   abstraction takes the same arguments as accumulate, together with
+   an additional predicate of one argument that specifies the filter.
+   Write `filtered-accumulate' as a procedure.  Show how to express
+   the following using `filtered-accumulate':
+
+     a. the sum of the squares of the prime numbers in the interval a
+        to b (assuming that you have a `prime?' predicate already
+        written)
+
+     b. the product of all the positive integers less than n that are
+        relatively prime to n (i.e., all positive integers i < n such
+        that GCD(i,n) = 1).
+
+   ----------------------------------------------------------------------
+
+   #+BEGIN_SRC scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Example 1.33
+     ;; -------------------------------------------------------------------
+
+     (define (accumulate-filter predicate combiner null-value term a next b)
+       (define (iter a result)
+         (cond ((> a b) result)
+               ((predicate a) (iter (next a) (combiner (term a) result)))
+               (else (iter (next a) result))))
+       (iter a null-value))
+
+   #+END_SRC
+
+* Constructing Procedures Using `Lambda'
+** Exercise 1.34:
+   Suppose we define the procedure
+
+   #+BEGIN_SRC scheme
+     (define (f g)
+       (g 2))
+   #+END_SRC
+   
+   Then we have
+
+   #+BEGIN_SRC scheme
+     (f square)
+     4
+
+     (f (lambda (z) (* z (+ z 1))))
+     6
+   #+END_SRC
+   
+   What happens if we (perversely) ask the interpreter to evaluate
+   the combination `(f f)'?  Explain.
+
+   ----------------------------------------------------------------------
+
+   The call will fail, as ~(g 2)~ will evaluate to the form ~(2 2)~,
+   which will fail to apply as ~2~ is a number, not a procedure.
+   
+   #+BEGIN_SRC scheme
+     (f f)
+     (f (f 2))
+     (f (2 2))
+     ;; The object 2 is not applicable.
+   #+END_SRC
+
+* Procedures as General Methods
+* Procedures as Returned Values
