@@ -1,0 +1,23 @@
+hr {
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+.org-src-container {
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
+.outline-text-2,
+.outline-3 {
+    margin-left: 2em;
+}
+
+.outline-text-3,
+.outline-4 {
+    margin-left: 4em;
+}
+
+.outline-text-4 {
+    margin-left: 6em;
+}
