@@ -84,13 +84,13 @@ layout: org
 
    #+BEGIN_SRC scheme
      (A 1 10)
-     24
+     1024
 
      (A 2 4)
-     536
+     65536
 
      (A 3 3)
-     536
+     65536
    #+END_SRC
   
    Consider the following procedures, where `A' is the procedure
@@ -113,7 +113,8 @@ layout: org
    --------------------------------------------------------------------
   
    `(f n)' computes 2n
-   `(g n)' computes ...
+   `(g n)' computes 2^n
+   `(h n)' computes 2^h(n - 1)
 
 * 1.2.2: Tree Recursion
 
@@ -189,8 +190,8 @@ layout: org
      (define (pascal row column)
        (cond ((= column 1) 1)
              ((= row column) 1)
-             (#t (+ (pascal (- row 1) (- column 1))
-                    (pascal (- row 1) column)))))
+             (else (+ (pascal (- row 1) (- column 1))
+                      (pascal (- row 1) column)))))
    #+END_SRC
 
 ** Exercise 1.13
