@@ -659,7 +659,23 @@ layout: org
    function".  Show how to generate the n-fold smoothed function of
    any given function using `smooth' and `repeated' from *Note
    Exercise 1-43::.
-   
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 1.44
+     ;; -------------------------------------------------------------------
+
+     (define (smooth f)
+       (lambda (x) (/ (+ (f (- x dx))
+                         (f x)
+                         (f (+ x dx)))
+                      3)))
+
+     (define (smooth-n f times)
+       ((repeated smooth times) f))
+   #+end_src
 ** Exercise 1.45
    We saw in section *Note 1-3-3:: that attempting to compute square
    roots by naively finding a fixed point of y |-> x/y does not
