@@ -635,6 +635,18 @@ layout: org
    Hint: You may find it convenient to use `compose' from *Note
    Exercise 1-42::.
 
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 1.43
+     ;; -------------------------------------------------------------------
+
+     (define (repeated f times)
+       (if (= times 1)
+           (lambda (x) (f x))
+           (compose f (repeated f (- times 1)))))
+   #+end_src
 ** Exercise 1.44
    The idea of "smoothing" a function is an important concept in
    signal processing.  If f is a function and dx is some small number,
