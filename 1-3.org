@@ -577,7 +577,21 @@ layout: org
    #+begin_src scheme
         (((double (double double)) inc) 5)
    #+end_src
-   
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 1.41
+     ;; -------------------------------------------------------------------
+
+     (define (double f)
+       (lambda (x) (f (f x))))
+
+     (((double (double double)) inc) 5)
+     ;Value: 21
+
+   #+end_src
 ** Exercise 1.42
    Let f and g be two one-argument functions.  The "composition" f
    after g is defined to be the function x |-> f(g(x)).  Define a
