@@ -602,7 +602,18 @@ layout: org
         ((compose square inc) 6)
         49
    #+end_src
-   
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 1.42
+     ;; -------------------------------------------------------------------
+
+     (define (compose f g)
+       (lambda (x) (f (g x))))
+
+   #+end_src
 ** Exercise 1.43
    If f is a numerical function and n is a positive
    integer, then we can form the nth repeated application of f, which
