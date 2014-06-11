@@ -197,6 +197,12 @@ layout: org
              result
              (iter (next a) (combiner (term a) result))))
        (iter a null-value))
+
+     (define (sum term a next b)
+       (accumulate-iter + 0 term a next b))
+
+     (define (product term a next b)
+       (accumulate-iter * 1 term a next b))
    #+END_SRC
    
 ** Exercise 1.33
