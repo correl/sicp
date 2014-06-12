@@ -375,7 +375,13 @@ layout: org
    #+END_SRC
    
 * 1.2.5: Greatest Common Divisors
-  
+  #+begin_src scheme :tangle yes
+    (define (gcd a b)
+      (if (= b 0)
+          a
+          (gcd b (remainder a b))))
+
+  #+end_src
 ** Exercise 1.20
    The process that a procedure generates is of
    course dependent on the rules used by the interpreter.  As an
