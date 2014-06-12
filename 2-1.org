@@ -1,0 +1,226 @@
+#+BEGIN_HTML
+---
+title: 2.1 - Introduction to Data Abstraction
+layout: org
+---
+#+END_HTML
+
+* Example: Arithmetic Operations for Rational Numbers
+
+  #+begin_src scheme :tangle yes
+    ;; ===================================================================
+    ;; 2.1.1: Example: Arithmetic Operators for Rational Numbers
+    ;; ===================================================================
+
+    (define (add-rat x y)
+      (make-rat (+ (* (numer x) (denom y))
+                   (* (numer y) (denom x)))
+                (* (denom x) (denom y))))
+
+    (define (sub-rat x y)
+      (make-rat (- (* (numer x) (denom y))
+                   (* (numer y) (denom x)))
+                (* (denom x) (denom y))))
+
+    (define (mul-rat x y)
+      (make-rat (* (numer x) (numer y))
+                (* (denom x) (denom y))))
+
+    (define (div-rat x y)
+      (make-rat (* (numer x) (denom y))
+                (* (denom x) (numer y))))
+
+    (define (equal-rat? x y)
+      (= (* (numer x) (denom y))
+         (* (numer y) (denom x))))
+
+    (define (make-rat n d) (cons n d))
+
+    (define (numer x) (car x))
+
+    (define (denom x) (cdr x))
+
+    (define (print-rat x)
+      (newline)
+      (display (numer x))
+      (display "/")
+      (display (denom x)))
+
+    (define (gcd a b)
+      (if (= b 0)
+          a
+          (gcd b (remainder a b))))
+
+    (define (make-rat n d)
+      (let ((g (gcd n d)))
+        (cons (/ n g) (/ d g))))
+  #+end_src
+** Exercise 2.1:
+   Define a better version of `make-rat' that handles
+   both positive and negative arguments.  `Make-rat' should normalize
+   the sign so that if the rational number is positive, both the
+   numerator and denominator are positive, and if the rational number
+   is negative, only the numerator is negative.
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 2.1
+     ;; -------------------------------------------------------------------
+
+     (define (make-rat n d)
+       (cond ((and (negative? n) (negative? d)) (make-rat (abs n) (abs d)))
+             ((negative? d) (make-rat (- n) (- d)))
+             (else (let ((g (gcd n d)))
+                     (cons (/ n g) (/ d g))))))
+   #+end_src
+
+** Exercise 2.2
+   Consider the problem of representing line segments in a plane.
+   Each segment is represented as a pair of points: a starting point
+   and an ending point.  Define a constructor `make-segment' and
+   selectors `start-segment' and `end-segment' that define the
+   representation of segments in terms of points.  Furthermore, a
+   point can be represented as a pair of numbers: the x coordinate and
+   the y coordinate.  Accordingly, specify a constructor `make-point'
+   and selectors `x-point' and `y-point' that define this
+   representation.  Finally, using your selectors and constructors,
+   define a procedure `midpoint-segment' that takes a line segment as
+   argument and returns its midpoint (the point whose coordinates are
+   the average of the coordinates of the endpoints).  To try your
+   procedures, you'll need a way to print points:
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Excercise 2.2
+     ;; -------------------------------------------------------------------
+
+     (define (print-point p)
+       (newline)
+       (display "(")
+       (display (x-point p))
+       (display ",")
+       (display (y-point p))
+       (display ")"))
+   #+end_src
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     (define make-point cons)
+     (define x-point car)
+     (define y-point cdr)
+
+     (define (midpoint-segment p1 p2)
+       (let ((average (lambda (x y) (/ (+ x y) 2))))
+         (make-point
+          (average (x-point p1) (x-point p2))
+          (average (y-point p1) (y-point p2)))))
+   #+end_src
+** Exercise 2.3:
+   Implement a representation for rectangles in a plane.  (Hint: You
+   may want to make use of *Note Exercise 2-2::.)  In terms of your
+   constructors and selectors, create procedures that compute the
+   perimeter and the area of a given rectangle.  Now implement a
+   different representation for rectangles.  Can you design your
+   system with suitable abstraction barriers, so that the same
+   perimeter and area procedures will work using either
+   representation?
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 2.3
+     ;; -------------------------------------------------------------------
+
+     (define (perimeter-rectangle r)
+       (+ (* 2 (width-rectangle r))
+          (* 2 (height-rectangle r))))
+
+     (define (area-rectangle r)
+       (* (width-rectangle r)
+          (height-rectangle r)))
+
+     ;; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     ;; Hard mode - Expose the 4 points of the rectangle
+     ;;             Width and Height have their own abstraction layer
+     ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+     (define (width-rectangle r)
+       (abs (- (x2-rectangle r)
+               (x1-rectangle r))))
+
+     (define (height-rectangle r)
+       (abs (- (y2-rectangle r)
+               (y1-rectangle r))))
+
+     (define (x1-rectangle r) (x-point (top-left-point-rectangle r)))
+     (define (x2-rectangle r) (x-point (bottom-right-point-rectangle r)))
+     (define (y1-rectangle r) (y-point (top-left-point-rectangle r)))
+     (define (y2-rectangle r) (y-point (bottom-right-point-rectangle r)))
+
+     ;; -------------------------------------------------------------------
+     ;; Rectangle implementation using two points on a plane
+
+     (define make-rectangle cons)
+     (define top-left-point-rectangle car)
+     (define bottom-right-point-rectangle cdr)
+     (define (top-right-point-rectangle r)
+       (make-point (x-point (top-left-point-rectangle r))
+                   (y-point (bottom-right-point-rectangle r))))
+     (define (bottom-left-point-rectangle r)
+       (make-point (x-point (top-left-point-rectangle r))
+                   (y-point (bottom-right-point-rectangle r))))
+
+     ;; -------------------------------------------------------------------
+     ;; Rectangle implementation using an origin point, width and height
+
+     (define (make-rectangle origin width height)
+       (cons origin (cons width height)))
+     (define (top-left-point-rectangle r) (car r))
+     (define (top-right-point-rectangle r)
+       (let ((x (x-point (car r)))
+             (y (y-point (car r)))
+             (width (car (cdr r))))
+         (make-point (+ x width) y)))
+     (define (bottom-left-point-rectangle r)
+       (let ((x (x-point (car r)))
+             (y (y-point (car r)))
+             (height (cdr (cdr r))))
+         (make-point x (+ y height))))
+     (define (bottom-right-point-rectangle r)
+       (let ((x (x-point (car r)))
+             (y (y-point (car r)))
+             (width (car (cdr r)))
+             (height (cdr (cdr r))))
+         (make-point (+ x width) (+ y height))))
+
+     ;; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     ;; Simpler solution - Expose only width + height
+     ;; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+     ;; -------------------------------------------------------------------
+     ;; Rectangle implementation using two points on a plane
+
+     (define make-rectangle cons)
+     (define (width-rectangle r)
+       (let ((p1 (car r))
+             (p2 (cdr r)))
+         (abs (- (x-point p1)
+                 (x-point p2)))))
+     (define (height-rectangle r)
+       (let ((p1 (car r))
+             (p2 (cdr r)))
+         (abs (- (y-point p1)
+                 (y-point p2)))))
+
+     ;; -------------------------------------------------------------------
+     ;; Rectangle implementation using an origin point, width and height
+
+     (define (make-rectangle origin width height)
+       (cons origin (cons width height)))
+     (define (width-rectangle r) (car (cdr r)))
+     (define (height-rectangle r) (cdr (cdr r)))
+   #+end_src
