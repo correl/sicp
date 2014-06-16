@@ -76,6 +76,7 @@ layout: org
                      (cons (/ n g) (/ d g))))))
    #+end_src
 
+* Abstraction Barriers
 ** Exercise 2.2
    Consider the problem of representing line segments in a plane.
    Each segment is represented as a pair of points: a starting point
@@ -223,4 +224,157 @@ layout: org
        (cons origin (cons width height)))
      (define (width-rectangle r) (car (cdr r)))
      (define (height-rectangle r) (cdr (cdr r)))
+   #+end_src
+* What is Meant by Data
+** Exercise 2.4
+   Here is an alternative procedural representation of pairs.  For
+   this representation, verify that `(car (cons x y))' yields `x' for
+   any objects `x' and `y'.
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 2.4
+     ;; -------------------------------------------------------------------
+
+     (define (cons x y)
+       (lambda (m) (m x y)))
+
+     (define (car z)
+       (z (lambda (p q) p)))
+   #+end_src
+
+   What is the corresponding definition of `cdr'? (Hint: To verify
+   that this works, make use of the substitution model of section
+   *Note 1-1-5::.)
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     (define (cdr z)
+       (z (lambda (p q) q)))
+   #+end_src
+** Exercise 2.5
+   Show that we can represent pairs of nonnegative integers using only
+   numbers and arithmetic operations if we represent the pair a and b
+   as the integer that is the product 2^a 3^b.  Give the corresponding
+   definitions of the procedures `cons', `car', and `cdr'.
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 2.5
+     ;; -------------------------------------------------------------------
+
+     (define (cons a b)
+       (* (expt 2 a) (expt 3 b)))
+
+     (define (factor-count n x count)
+       (if (= 0 (remainder x n))
+           (factor-count n (/ x n) (+ 1 count))
+           count))
+
+     (define (car p)
+       (factor-count 2 p 0))
+
+     (define (cdr p)
+       (factor-count 3 p 0))
+   #+end_src
+** Exercise 2.6
+   In case representing pairs as procedures wasn't mind-boggling
+   enough, consider that, in a language that can manipulate
+   procedures, we can get by without numbers (at least insofar as
+   nonnegative integers are concerned) by implementing 0 and the
+   operation of adding 1 as
+
+   #+begin_src scheme
+     (define zero (lambda (f) (lambda (x) x)))
+
+     (define (add-1 n)
+       (lambda (f) (lambda (x) (f ((n f) x)))))
+   #+end_src
+
+   This representation is known as "Church numerals", after its
+   inventor, Alonzo Church, the logician who invented the [lambda]
+   calculus.
+
+   Define `one' and `two' directly (not in terms of `zero' and
+   `add-1').  (Hint: Use substitution to evaluate `(add-1 zero)').
+   Give a direct definition of the addition procedure `+' (not in
+   terms of repeated application of `add-1').
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     (define one (lambda (f) (lambda (x) (f x))))
+     (define two (lambda (f) (lambda (x) (f (f x)))))
+
+     (define (add a b)
+       (lambda (f)
+         (lambda (x)
+           ((a f) ((b f) x)))))
+   #+end_src
+
+* Extended Exercise: Interval Arithmetic
+  #+begin_src scheme :tangle yes
+    ;; ===================================================================
+    ;; 2.1.4: Extended Exercise: Interval Arithmetic
+    ;; ===================================================================
+
+    (define (add-interval x y)
+      (make-interval (+ (lower-bound x) (lower-bound y))
+                     (+ (upper-bound x) (upper-bound y))))
+
+    (define (mul-interval x y)
+      (let ((p1 (* (lower-bound x) (lower-bound y)))
+            (p2 (* (lower-bound x) (upper-bound y)))
+            (p3 (* (upper-bound x) (lower-bound y)))
+            (p4 (* (upper-bound x) (upper-bound y))))
+        (make-interval (min p1 p2 p3 p4)
+                       (max p1 p2 p3 p4))))
+
+    (define (div-interval x y)
+      (mul-interval x
+                    (make-interval (/ 1.0 (upper-bound y))
+                                   (/ 1.0 (lower-bound y)))))
+
+  #+end_src
+
+** Exercise 2.7
+   Alyssa's program is incomplete because she has not specified the
+   implementation of the interval abstraction.  Here is a definition
+   of the interval constructor:
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 2.7
+     ;; -------------------------------------------------------------------
+
+     (define (make-interval a b) (cons a b))
+   #+end_src
+
+   Define selectors `upper-bound' and `lower-bound' to complete the
+   implementation.
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     (define (upper-bound p)
+       (max (car p) (cdr p)))
+
+     (define (lower-bound p)
+       (min (car p) (cdr p)))
+   #+end_src
+
+** Exercise 2.8:
+   Using reasoning analogous to Alyssa's, describe how the difference
+   of two intervals may be computed.  Define a corresponding
+   subtraction procedure, called `sub-interval'.
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 2.8
+     ;; -------------------------------------------------------------------
    #+end_src
