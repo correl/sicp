@@ -113,11 +113,17 @@ layout: org
      (define x-point car)
      (define y-point cdr)
 
-     (define (midpoint-segment p1 p2)
-       (let ((average (lambda (x y) (/ (+ x y) 2))))
-         (make-point
-          (average (x-point p1) (x-point p2))
-          (average (y-point p1) (y-point p2)))))
+     (define make-segment cons)
+     (define start-segment car)
+     (define end-segment cdr)
+
+     (define (midpoint-segment segment)
+       (let ((p1 (start-segment segment))
+             (p2 (end-segment segment)))
+         (let ((average (lambda (x y) (/ (+ x y) 2))))
+           (make-point
+            (average (x-point p1) (x-point p2))
+            (average (y-point p1) (y-point p2))))))
    #+end_src
 ** Exercise 2.3:
    Implement a representation for rectangles in a plane.  (Hint: You
