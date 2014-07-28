@@ -1,0 +1,110 @@
+#+BEGIN_HTML
+---
+title: 2.3 - Symbolic Data
+layout: org
+---
+#+END_HTML
+
+* Quotation
+** Exercise 2.53
+   What would the interpreter print in response to evaluating each of
+   the following expressions?
+
+   #+BEGIN_SRC scheme
+     (list 'a 'b 'c)
+
+     (list (list 'george))
+
+     (cdr '((x1 x2) (y1 y2)))
+
+     (cadr '((x1 x2) (y1 y2)))
+
+     (pair? (car '(a short list)))
+
+     (memq 'red '((red shoes) (blue socks)))
+
+     (memq 'red '(red shoes blue socks))
+   #+END_SRC
+
+   ----------------------------------------------------------------------
+
+   #+BEGIN_SRC scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 2.53
+     ;; -------------------------------------------------------------------
+
+     (list 'a 'b 'c)
+     ;; (a b c)
+     (list (list 'george))
+     ;; ((george))
+     (cdr '((x1 x2) (y1 y2)))
+     ;; ((y1 y2))
+     (cadr '((x1 x2) (y1 y2)))
+     ;; (y1 y2)
+     (pair? (car '(a short list)))
+     ;; #f
+     (memq 'red '((red shoes) (blue socks)))
+     ;; #f
+     (memq 'red '(red shoes blue socks))
+     ;; (red shoes blue socks)
+   #+END_SRC
+** Exercise 2.54
+   Two lists are said to be `equal?' if they contain
+   equal elements arranged in the same order.  For example,
+
+   #+BEGIN_SRC scheme
+          (equal? '(this is a list) '(this is a list))
+   #+END_SRC
+   
+   is true, but
+
+   #+BEGIN_SRC scheme
+   (equal? '(this is a list) '(this (is a) list))
+   #+END_SRC
+
+   is false.  To be more precise, we can define `equal?'  recursively
+   in terms of the basic `eq?' equality of symbols by saying that `a'
+   and `b' are `equal?' if they are both symbols and the symbols are
+   `eq?', or if they are both lists such that `(car a)' is `equal?'
+   to `(car b)' and `(cdr a)' is `equal?' to `(cdr b)'.  Using this
+   idea, implement `equal?' as a procedure.(5)
+
+   ----------------------------------------------------------------------
+
+   #+BEGIN_SRC scheme :tangle yes
+     ;; -------------------------------------------------------------------
+     ;; Exercise 2.54
+     ;; -------------------------------------------------------------------
+
+     (define (my-equal? a b)
+       (cond ((and (null? a)
+                   (null? b))
+              #t)
+             ((and (symbol? a)
+                   (symbol? b))
+              (eq? a b))
+             ((and (pair? a)
+                   (pair? b))
+              (and (eq? (car a) (car b))
+                   (my-equal? (cdr a) (cdr b))))
+             (else #f)))
+   #+END_SRC
+   
+** Exercise 2.55
+   Eva Lu Ator types to the interpreter the expression
+
+   #+BEGIN_SRC scheme
+     (car ''abracadabra)
+   #+END_SRC
+
+   To her surprise, the interpreter prints back `quote'.  Explain.
+
+   ----------------------------------------------------------------------
+
+   ~'abracadabra~ expands to ~(quote abracadabra)~ Therefore
+   ~''abracadabra~ expands to ~'(quote abracadabra)~, which expands to
+   ~(quote (quote abracadabra))~, the car of which is the atom
+   ~quote~.
+* Example: Symbolic Differentiation
+* Example: Representing Sets
+* Example: Huffman Encoding Trees
