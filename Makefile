@@ -1,26 +1,8 @@
-.PHONY: default all clean org org-code jekyll serve
+SITE_NAME = SICP
+SITE_TITLE = Exercises and Notes
+SITE_AUTHOR = Correl Roush
+SITE_AUTHOR_EMAIL = correl@gmail.com
+SITE_TWITTER = correlr
+SITE_GITHUB = correl/sicp
 
-default: all
-
-all: org org-code jekyll
-
-clean:
-	rm -rf	_site \
-		_org \
-		*.scheme
-
-org:
-	emacs --batch -u ${USER} -l org-publish.el
-
-org-code: *.org
-	for org in $?; do \
-		emacs	--batch -u ${USER} \
-			--eval "(require 'org)" \
-			--eval "(org-babel-tangle-file \"$$org\")" ; \
-	done
-
-jekyll:
-	jekyll build
-
-serve:
-	jekyll serve
+include org-jekyll.mk
