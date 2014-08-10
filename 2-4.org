@@ -1,0 +1,453 @@
+#+BEGIN_HTML
+---
+title: 2.4 - Multiple Representations for Abstract Data
+layout: org
+---
+#+END_HTML
+
+* Representations for Complex Numbers
+* Tagged Data
+  #+begin_src scheme :tangle yes
+    ;; ===================================================================
+    ;; 2.4.2: Tagged Data
+    ;; ===================================================================
+
+    (define (attach-tag type-tag contents)
+      (cons type-tag contents))
+
+    (define (type-tag datum)
+      (if (pair? datum)
+          (car datum)
+          (error "Bad tagged datum -- TYPE-TAG" datum)))
+
+    (define (contents datum)
+      (if (pair? datum)
+          (cdr datum)
+          (error "Bad tagged datum -- CONTENTS" datum)))
+
+    (define (rectangular? z)
+      (eq? (type-tag z) 'rectangular))
+
+    (define (polar? z)
+      (eq? (type-tag z) 'polar))
+
+    (define (real-part-rectangular z) (car z))
+
+    (define (imag-part-rectangular z) (cdr z))
+
+    (define (magnitude-rectangular z)
+      (sqrt (+ (square (real-part-rectangular z))
+               (square (imag-part-rectangular z)))))
+
+    (define (angle-rectangular z)
+      (atan (imag-part-rectangular z)
+            (real-part-rectangular z)))
+
+    (define (make-from-real-imag-rectangular x y)
+      (attach-tag 'rectangular (cons x y)))
+
+    (define (make-from-mag-ang-rectangular r a)
+      (attach-tag 'rectangular
+                  (cons (* r (cos a)) (* r (sin a)))))
+
+    (define (real-part-polar z)
+      (* (magnitude-polar z) (cos (angle-polar z))))
+
+    (define (imag-part-polar z)
+      (* (magnitude-polar z) (sin (angle-polar z))))
+
+    (define (magnitude-polar z) (car z))
+
+    (define (angle-polar z) (cdr z))
+
+    (define (make-from-real-imag-polar x y)
+      (attach-tag 'polar
+                  (cons (sqrt (+ (square x) (square y)))
+                        (atan y x))))
+
+    (define (make-from-mag-ang-polar r a)
+      (attach-tag 'polar (cons r a)))
+
+    (define (real-part z)
+      (cond ((rectangular? z)
+             (real-part-rectangular (contents z)))
+            ((polar? z)
+             (real-part-polar (contents z)))
+            (else (error "Unknown type -- REAL-PART" z))))
+
+    (define (imag-part z)
+      (cond ((rectangular? z)
+             (imag-part-rectangular (contents z)))
+            ((polar? z)
+             (imag-part-polar (contents z)))
+            (else (error "Unknown type -- IMAG-PART" z))))
+
+    (define (magnitude z)
+      (cond ((rectangular? z)
+             (magnitude-rectangular (contents z)))
+            ((polar? z)
+             (magnitude-polar (contents z)))
+            (else (error "Unknown type -- MAGNITUDE" z))))
+
+    (define (angle z)
+      (cond ((rectangular? z)
+             (angle-rectangular (contents z)))
+            ((polar? z)
+             (angle-polar (contents z)))
+            (else (error "Unknown type -- ANGLE" z))))
+
+    (define (add-complex z1 z2)
+      (make-from-real-imag (+ (real-part z1) (real-part z2))
+                           (+ (imag-part z1) (imag-part z2))))
+
+    (define (make-from-real-imag x y)
+      (make-from-real-imag-rectangular x y))
+
+    (define (make-from-mag-ang r a)
+      (make-from-mag-ang-polar r a))
+  #+end_src
+* Data-Directed Programming and Additivity
+  #+begin_src scheme :tangle yes
+    ;; ===================================================================
+    ;; 2.4.3: Data-Directed Programming and Additivity
+    ;; ===================================================================
+
+    (define (install-rectangular-package)
+      ;; internal procedures
+      (define (real-part z) (car z))
+      (define (imag-part z) (cdr z))
+      (define (make-from-real-imag x y) (cons x y))
+      (define (magnitude z)
+        (sqrt (+ (square (real-part z))
+                 (square (imag-part z)))))
+      (define (angle z)
+        (atan (imag-part z) (real-part z)))
+      (define (make-from-mag-ang r a)
+        (cons (* r (cos a)) (* r (sin a))))
+
+      ;; interface to the rest of the system
+      (define (tag x) (attach-tag 'rectangular x))
+      (put 'real-part '(rectangular) real-part)
+      (put 'imag-part '(rectangular) imag-part)
+      (put 'magnitude '(rectangular) magnitude)
+      (put 'angle '(rectangular) angle)
+      (put 'make-from-real-imag 'rectangular
+           (lambda (x y) (tag (make-from-real-imag x y))))
+      (put 'make-from-mag-ang 'rectangular
+           (lambda (r a) (tag (make-from-mag-ang r a))))
+      'done)
+
+    (define (install-polar-package)
+      ;; internal procedures
+      (define (magnitude z) (car z))
+      (define (angle z) (cdr z))
+      (define (make-from-mag-ang r a) (cons r a))
+      (define (real-part z)
+        (* (magnitude z) (cos (angle z))))
+      (define (imag-part z)
+        (* (magnitude z) (sin (angle z))))
+      (define (make-from-real-imag x y)
+        (cons (sqrt (+ (square x) (square y)))
+              (atan y x)))
+
+      ;; interface to the rest of the system
+      (define (tag x) (attach-tag 'polar x))
+      (put 'real-part '(polar) real-part)
+      (put 'imag-part '(polar) imag-part)
+      (put 'magnitude '(polar) magnitude)
+      (put 'angle '(polar) angle)
+      (put 'make-from-real-imag 'polar
+           (lambda (x y) (tag (make-from-real-imag x y))))
+      (put 'make-from-mag-ang 'polar
+           (lambda (r a) (tag (make-from-mag-ang r a))))
+      'done)
+
+    (define (apply-generic op . args)
+      (let ((type-tags (map type-tag args)))
+        (let ((proc (get op type-tags)))
+          (if proc
+              (apply proc (map contents args))
+              (error
+               "No method for these types -- APPLY-GENERIC"
+               (list op type-tags))))))
+
+    (define (real-part z) (apply-generic 'real-part z))
+    (define (imag-part z) (apply-generic 'imag-part z))
+    (define (magnitude z) (apply-generic 'magnitude z))
+    (define (angle z) (apply-generic 'angle z))
+
+    (define (make-from-real-imag x y)
+      ((get 'make-from-real-imag 'rectangular) x y))
+
+    (define (make-from-mag-ang r a)
+      ((get 'make-from-mag-ang 'polar) r a))
+  #+end_src
+** Exercise 2.73
+   Section *Note 2-3-2:: described a program that performs symbolic
+   differentiation:
+
+   #+begin_src scheme
+     (define (deriv exp var)
+       (cond ((number? exp) 0)
+             ((variable? exp) (if (same-variable? exp var) 1 0))
+             ((sum? exp)
+              (make-sum (deriv (addend exp) var)
+                        (deriv (augend exp) var)))
+             ((product? exp)
+              (make-sum
+                (make-product (multiplier exp)
+                              (deriv (multiplicand exp) var))
+                (make-product (deriv (multiplier exp) var)
+                              (multiplicand exp))))
+             <MORE RULES CAN BE ADDED HERE>
+             (else (error "unknown expression type -- DERIV" exp))))
+   #+end_src
+
+   We can regard this program as performing a dispatch on the type of
+   the expression to be differentiated.  In this situation the "type
+   tag" of the datum is the algebraic operator symbol (such as `+')
+   and the operation being performed is `deriv'.  We can transform
+   this program into data-directed style by rewriting the basic
+   derivative procedure as
+
+   #+begin_src scheme
+     (define (deriv exp var)
+        (cond ((number? exp) 0)
+              ((variable? exp) (if (same-variable? exp var) 1 0))
+              (else ((get 'deriv (operator exp)) (operands exp)
+                                                 var))))
+
+     (define (operator exp) (car exp))
+
+     (define (operands exp) (cdr exp))
+   #+end_src
+   
+   a. Explain what was done above.  Why can't we assimilate the
+      predicates `number?' and `same-variable?' into the
+      data-directed dispatch?
+
+      ----------------------------------------------------------------------
+      
+      Rather than embed the logic for each operator we want to support
+      in the ~deriv~ function, we'll dispatch them based on the
+      operator in the expression.
+
+      ~number?~ and ~same-variable~ cannot be dispatched this way
+      because they're scalar values, not compound expressions tagged
+      with an operator to dispatch on.
+
+   b. Write the procedures for derivatives of sums and products,
+      and the auxiliary code required to install them in the table
+      used by the program above.
+
+      ----------------------------------------------------------------------
+
+      #+begin_src scheme
+        (define (install-deriv-code)
+          (define (deriv-sum exp var)
+            (make-sum (deriv (addend exp) var)
+                      (deriv (augend exp) var)))
+          (define (deriv-product expr var)
+            (make-sum
+             (make-product (multiplier exp)
+                           (deriv (multiplicand exp) var))
+             (make-product (deriv (multiplier exp) var)
+                           (multiplicand exp))))
+          (put 'deriv '+ deriv-sum)
+          (put 'deriv '* deriv-product))
+      #+end_src
+
+   c. Choose any additional differentiation rule that you like,
+      such as the one for exponents (*Note Exercise 2-56::), and
+      install it in this data-directed system.
+
+   d. In this simple algebraic manipulator the type of an
+      expression is the algebraic operator that binds it together.
+      Suppose, however, we indexed the procedures in the opposite
+      way, so that the dispatch line in `deriv' looked like
+
+      #+begin_src scheme
+        ((get (operator exp) 'deriv) (operands exp) var)
+      #+end_src
+
+      What corresponding changes to the derivative system are
+      required?
+
+      ----------------------------------------------------------------------
+
+      Nothing, only the implementations of the dispatch table storage
+      / lookup methods ( ~put~ / ~get~ ) would change.
+
+** Exercise 2.74:
+   Insatiable Enterprises, Inc., is a highly decentralized
+   conglomerate company consisting of a large number of independent
+   divisions located all over the world.  The company's computer
+   facilities have just been interconnected by means of a clever
+   network-interfacing scheme that makes the entire network appear to
+   any user to be a single computer.  Insatiable's president, in her
+   first attempt to exploit the ability of the network to extract
+   administrative information from division files, is dismayed to
+   discover that, although all the division files have been
+   implemented as data structures in Scheme, the particular data
+   structure used varies from division to division.  A meeting of
+   division managers is hastily called to search for a strategy to
+   integrate the files that will satisfy headquarters' needs while
+   preserving the existing autonomy of the divisions.
+
+   Show how such a strategy can be implemented with data-directed
+   programming.  As an example, suppose that each division's personnel
+   records consist of a single file, which contains a set of records
+   keyed on employees' names.  The structure of the set varies from
+   division to division.  Furthermore, each employee's record is
+   itself a set (structured differently from division to division)
+   that contains information keyed under identifiers such as `address'
+   and `salary'.  In particular:
+
+   a. Implement for headquarters a `get-record' procedure that
+      retrieves a specified employee's record from a specified
+      personnel file.  The procedure should be applicable to any
+      division's file.  Explain how the individual divisions' files
+      should be structured.  In particular, what type information
+      must be supplied?
+
+      ----------------------------------------------------------------------
+
+      #+begin_src scheme
+        (define division-identifier car)
+        (define division-data cdr)
+        (define tag-division cons)
+
+        (define (get-record name tagged-file)
+          (let ((division (division-identifier tagged-file))
+                (file (division-data tagged-file)))
+            (tag-division division (apply-generic 'get-record
+                                                  (division-identifier file)
+                                                  name
+                                                  (division-data file)))))
+      #+end_src
+
+      Division files must be tagged with a unique identifier for the
+      division.
+
+   b. Implement for headquarters a `get-salary' procedure that
+      returns the salary information from a given employee's record
+      from any division's personnel file.  How should the record be
+      structured in order to make this operation work?
+
+      ----------------------------------------------------------------------
+
+      #+begin_src scheme
+        (define (get-record-field tagged-record field)
+          (let ((division (division-identifier tagged-record))
+                (record (division-data tagged-record)))
+            (apply-generic 'get-record-field
+                           division
+                           record
+                           field)))
+      #+end_src
+      
+   c. Implement for headquarters a `find-employee-record'
+      procedure.  This should search all the divisions' files for
+      the record of a given employee and return the record.  Assume
+      that this procedure takes as arguments an employee's name and
+      a list of all the divisions' files.
+
+      ----------------------------------------------------------------------
+
+      #+begin_src scheme
+        (define (find-employee-record name division-files)
+          (let* ((division-file (car division-files))
+                 (rest (cdr division-files))
+                 (found-file (get-record name division-file)))
+            (if (nil? found-file)
+                (find-employee-record name rest)
+                found-file)))
+      #+end_src
+   d. When Insatiable takes over a new company, what changes must
+      be made in order to incorporate the new personnel information
+      into the central system?
+
+      ----------------------------------------------------------------------
+
+      The new company's personnel information must be representable in
+      scheme, and will have to be tagged with a new unique
+      identifier. New implementations for ~get-record~ and
+      ~get-record-field~ will have to be implemented for the new data
+      format.
+* Message Passing
+  #+begin_src scheme
+    ;; ===================================================================
+    ;; 2.4.4: Message Passing
+    ;; ===================================================================
+
+    (define (make-from-real-imag x y)
+      (define (dispatch op)
+        (cond ((eq? op 'real-part) x)
+              ((eq? op 'imag-part) y)
+              ((eq? op 'magnitude)
+               (sqrt (+ (square x) (square y))))
+              ((eq? op 'angle) (atan y x))
+              (else
+               (error "Unknown op -- MAKE-FROM-REAL-IMAG" op))))
+      dispatch)
+
+    (define (apply-generic op arg) (arg op))
+  #+end_src
+** Exercise 2.75
+   Implement the constructor `make-from-mag-ang' in message-passing
+   style.  This procedure should be analogous to the
+   `make-from-real-imag' procedure given above.
+
+   ----------------------------------------------------------------------
+
+   #+begin_src scheme
+     (define (make-from-mag-ang r a)
+       (define (dispatch op)
+         (cond ((eq? op 'real-part)
+                (* r (cos a)))
+               ((eq? op 'imag-part)
+                (* r (sin a)))
+               ((eq? op 'magnitude) r)
+               ((eq? op 'angle) a)
+               (else
+                (error "Unknown op -- MAKE-FROM-MAG-ANG" op))))
+       dispatch)
+   #+end_src
+** Exercise 2.76
+   As a large system with generic operations evolves, new types of data
+   objects or new operations may be needed.  For each of the three
+   strategies--generic operations with explicit dispatch, data-directed
+   style, and message-passing-style--describe the changes that must be
+   made to a system in order to add new types or new operations.  Which
+   organization would be most appropriate for a system in which new
+   types must often be added?  Which would be most appropriate for a
+   system in which new operations must often be added?
+
+   ----------------------------------------------------------------------
+
+   * Generic operations with explicit dispatch
+     * A new constructor must be built to represent a new data format
+       and uniquely tag it
+     * Each generic accessor method must be updated to support a new
+       tagged data format
+     * New generics must be written to support all possible data formats
+     (Not additive)
+   * Data-directed style
+     * To add a new format, operations must be registered with a
+       global lookup table using a unique tag
+     * To add a new operation, each type implementation must be
+       updated to support the new operation, and a new generic
+       function must be made to dispatch it
+   * Message-passing style
+     * To add a new type, a new constructor must be built that handles
+       the supported operations
+     * To add a new operation, all constructors must be updated to
+       support it
+
+   When new types must often be added, data-directed is more
+   appropriate, as people creating new types don't have to worry about
+   the operations contract changing frequently.
+
+   When new operations must often be added, message-passing is more
+   appropriate, as operations can be added independently from the type
+   implementations (which can be caught up later).
