@@ -1,9 +1,4 @@
-#+BEGIN_HTML
----
-title: 2.4 - Multiple Representations for Abstract Data
-layout: org
----
-#+END_HTML
+#+TITLE: 2.4 - Multiple Representations for Abstract Data
 
 * Representations for Complex Numbers
 * Tagged Data

@@ -1,9 +1,4 @@
-#+BEGIN_HTML
----
-title: 2.1 - Introduction to Data Abstraction
-layout: org
----
-#+END_HTML
+#+TITLE: 2.1 - Introduction to Data Abstraction
 
 * Example: Arithmetic Operations for Rational Numbers
 

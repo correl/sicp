@@ -1,9 +1,4 @@
-#+BEGIN_HTML
----
-title: 1.3 - Formulating Abstractions with Higher-Order Procedures
-layout: org
----
-#+END_HTML
+#+TITLE: 1.3 - Formulating Abstractions with Higher-Order Procedures
 
 * Procedures as Arguments
 

@@ -1,9 +1,4 @@
-#+BEGIN_HTML
----
-title: 1.2 - Procedures and the Processes They Generate
-layout: org
----
-#+END_HTML
+#+TITLE: 1.2 - Procedures and the Processes They Generate
 
 * Linear Recursion and Iteration
 

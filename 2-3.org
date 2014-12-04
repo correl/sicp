@@ -1,9 +1,4 @@
-#+BEGIN_HTML
----
-title: 2.3 - Symbolic Data
-layout: org
----
-#+END_HTML
+#+TITLE: 2.3 - Symbolic Data
 
 * Quotation
 ** Exercise 2.53

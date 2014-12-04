@@ -1,9 +1,4 @@
-#+BEGIN_HTML
----
-title: 1.1 - The Elements of Programming
-layout: org
----
-#+END_HTML
+#+TITLE: 1.1 - The Elements of Programming
 
 * Code
   #+BEGIN_SRC scheme :tangle yes

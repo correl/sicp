@@ -1,9 +1,4 @@
-#+BEGIN_HTML
----
-title: 2.2 - Hierarchical Data and the Closure Property
-layout: org
----
-#+END_HTML
+#+TITLE: 2.2 - Hierarchical Data and the Closure Property
 
 * Representing Sequences
 ** List Operations
