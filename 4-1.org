@@ -51,6 +51,7 @@ make the evaluator independent of the representation of the language.
 #+END_SRC
 ** Apply
 #+BEGIN_SRC scheme :tangle yes
+  (define apply-in-underlying-scheme apply)
   (define (apply procedure arguments)
     (cond ((primitive-procedure? procedure)
            (apply-primitive-procedure 
@@ -103,7 +104,7 @@ yields expansion of consciousness without the abuse of substance.
                           env))))
 #+END_SRC
 ** Assignments and definitions
-#+BEGIN_SRC scheme
+#+BEGIN_SRC scheme :tangle yes
   (define (eval-assignment exp env)
     (set-variable-value! 
      (assignment-variable exp)
@@ -138,20 +139,18 @@ from right to left.
   (define (list-of-values-ltr exps env)
     (if (no-operands? exps)
         '()
-        (begin
-          (define first (eval (first-operand exps) env))
-          (define rest (list-of-values-ltr
-                        (rest-operands exps)
-                        env))
+        (let ((first (eval (first-operand exps) env))
+              (rest (list-of-values-ltr
+                     (rest-operands exps)
+                     env)))
           (cons first rest))))
   (define (list-of-values-rtl exps env)
     (if (no-operands? exps)
         '()
-        (begin
-          (define rest (list-of-values-rtl
-                        (rest-operands exps)
-                        env))
-          (define first (eval (first-operand exps) env))
+        (let ((rest (list-of-values-rtl
+                     (rest-operands exps)
+                     env))
+              (first (eval (first-operand exps) env)))
           (cons first rest))))
 #+END_SRC
 * <<4.1.2>> Representing Expressions
@@ -825,20 +824,6 @@ Scheme by modifying the procedures in this section, without changing
 #+END_SRC
 * <<4.1.4>> Running the Evaluator as a Program
 #+BEGIN_SRC scheme :tangle yes
-  (define (setup-environment)
-    (let ((initial-env
-           (extend-environment 
-            (primitive-procedure-names)
-            (primitive-procedure-objects)
-            the-empty-environment)))
-      (define-variable! 'true true initial-env)
-      (define-variable! 'false false initial-env)
-      initial-env))
-
-  (define the-global-environment 
-    (setup-environment))
-#+END_SRC
-#+BEGIN_SRC scheme :tangle yes
   (define (primitive-procedure? proc)
     (tagged-list? proc 'primitive))
 
@@ -851,7 +836,8 @@ Scheme by modifying the procedures in this section, without changing
           (list 'cdr cdr)
           (list 'cons cons)
           (list 'null? null?)
-          ⟨more primitives⟩ ))
+          ;; ⟨more primitives⟩
+          ))
 
   (define (primitive-procedure-names)
     (map car primitive-procedures))
@@ -860,6 +846,20 @@ Scheme by modifying the procedures in this section, without changing
     (map (lambda (proc) 
            (list 'primitive (cadr proc)))
          primitive-procedures))
+#+END_SRC
+#+BEGIN_SRC scheme :tangle yes
+  (define (setup-environment)
+    (let ((initial-env
+           (extend-environment 
+            (primitive-procedure-names)
+            (primitive-procedure-objects)
+            the-empty-environment)))
+      (define-variable! 'true true initial-env)
+      (define-variable! 'false false initial-env)
+      initial-env))
+
+  (define the-global-environment 
+    (setup-environment))
 #+END_SRC
 #+BEGIN_SRC scheme :tangle yes
   (define (apply-primitive-procedure proc args)
