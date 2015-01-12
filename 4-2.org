@@ -1,0 +1,434 @@
+#+TITLE: 4.2 - Variations on a Scheme — Lazy Evaluation
+#+STARTUP: indent
+#+OPTIONS: num:nil
+
+#+BEGIN_QUOTE
+Now that we have an evaluator expressed as a Lisp program, we can
+experiment with alternative choices in language design simply by
+modifying the evaluator.
+#+END_QUOTE
+
+Now that we're building our own scheme, we can try out alternate ways
+of implementing underlying language features, like changing order of
+evaluation, or how variables are bound.
+
+* COMMENT Set up source file
+#+BEGIN_SRC scheme :tangle yes
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; 4.2 - Variations on a Scheme — Lazy Evaluation
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (load "4-1.scheme")
+
+#+END_SRC
+* <<4.2.1>> Normal Order and Applicative Order
+
+#+BEGIN_QUOTE
+Scheme is an applicative-order language, namely, that all the
+arguments to Scheme procedures are evaluated when the procedure is
+applied. In contrast, normal-order languages delay evaluation of
+procedure arguments until the actual argument values are
+needed. Delaying evaluation of procedure arguments until the last
+possible moment (e.g., until they are required by a primitive
+operation) is called /lazy evaluation/.
+#+END_QUOTE
+
+From 1.1.5:
+#+BEGIN_QUOTE
+This alternative “fully expand and then reduce” evaluation method is
+known as normal-order evaluation, in contrast to the “evaluate the
+arguments and then apply” method that the interpreter actually uses,
+which is called applicative-order evaluation.
+#+END_QUOTE
+** Exploiting lazy evaluation: ~Unless~
+#+BEGIN_SRC scheme
+  (define (unless condition usual-value exceptional-value)
+    (if condition exceptional-value usual-value))
+#+END_SRC
+#+BEGIN_QUOTE
+One can do useful computation, combining elements to form data
+structures and operating on the resulting data structures, even if the
+values of the elements are not known.
+#+END_QUOTE
+#+COMMENT: Find haskell article showing lazy evaluation
+** Exercise 4.25
+Suppose that (in ordinary applicative-order Scheme) we define ~unless~
+as shown above and then define ~factorial~ in terms of ~unless~ as
+
+#+BEGIN_SRC scheme
+  (define (factorial n)
+    (unless (= n 1)
+            (* n (factorial (- n 1)))
+            1))
+#+END_SRC
+
+What happens if we attempt to evaluate ~(factorial 5)~?  Will our
+definitions work in a normal-order language?
+
+----------------------------------------------------------------------
+
+Evaluating this with applicative-order, attempting to evaluate
+~(factorial 5)~ would recurse indefinitely, as it continues to
+evaluate the recursion before reaching the terminating clause.
+
+With normal-order, the recursion wouldn't be evaluated unless ~(= n
+1)~, so the call should terminate successfully.
+** Exercise 4.26
+Ben Bitdiddle and Alyssa P. Hacker disagree over the importance of
+lazy evaluation for implementing things such as ~unless~.  Ben points
+out that it's possible to implement ~unless~ in applicative order as a
+special form.  Alyssa counters that, if one did that, ~unless~ would
+be merely syntax, not a procedure that could be used in conjunction
+with higher-order procedures.  Fill in the details on both sides of
+the argument.  Show how to implement ~unless~ as a derived expression
+(like ~cond~ or ~let~), and give an example of a situation where it
+might be useful to have ~unless~ available as a procedure, rather than
+as a special form.
+
+----------------------------------------------------------------------
+
+#+COMMENT: This implementation intentionally left blank
+
+A situation where it could be useful to have ~unless~ available as a
+procedure would be if there was some need to pass it as an argument to
+some other method to parameterize flow control in a higher-order
+procedure.
+* <<4.2.2>> An Interpreter with Lazy Evaluation
+** Modifying the evaluator
+*** Eval
+#+BEGIN_SRC scheme :tangle yes
+  (define (eval exp env)
+    (cond ((self-evaluating? exp) 
+           exp)
+          ((variable? exp) 
+           (lookup-variable-value exp env))
+          ((quoted? exp) 
+           (text-of-quotation exp))
+          ((assignment? exp) 
+           (eval-assignment exp env))
+          ((definition? exp) 
+           (eval-definition exp env))
+          ((if? exp) 
+           (eval-if exp env))
+          ((lambda? exp)
+           (make-procedure 
+            (lambda-parameters exp)
+            (lambda-body exp)
+            env))
+          ((begin? exp)
+           (eval-sequence 
+            (begin-actions exp) 
+            env))
+          ((cond? exp) 
+           (eval (cond->if exp) env))
+          ((application? exp)
+           (apply (actual-value (operator exp) env)
+                  (operands exp)
+                  env))
+          (else
+           (error "Unknown expression 
+                   type: EVAL" exp))))
+#+END_SRC
+*** Apply
+#+BEGIN_SRC scheme :tangle yes
+  (define (actual-value exp env)
+         (force-it (eval exp env)))
+  (define (apply procedure arguments env)
+         (cond ((primitive-procedure? procedure)
+                (apply-primitive-procedure
+                 procedure
+                 (list-of-arg-values arguments env)))  ; changed
+               ((compound-procedure? procedure)
+                (eval-sequence
+                 (procedure-body procedure)
+                 (extend-environment
+                  (procedure-parameters procedure)
+                  (list-of-delayed-args arguments env) ; changed
+                  (procedure-environment procedure))))
+               (else
+                (error
+                 "Unknown procedure type -- APPLY" procedure))))
+#+END_SRC
+*** Procedure Arguments
+#+BEGIN_SRC scheme :tangle yes
+  (define (list-of-arg-values exps env)
+    (if (no-operands? exps)
+        '()
+        (cons (actual-value (first-operand exps) env)
+              (list-of-arg-values (rest-operands exps)
+                                  env))))
+
+  (define (list-of-delayed-args exps env)
+    (if (no-operands? exps)
+        '()
+        (cons (delay-it (first-operand exps) env)
+              (list-of-delayed-args (rest-operands exps)
+                                    env))))
+#+END_SRC
+*** Conditionals
+#+BEGIN_SRC scheme :tangle yes
+  (define (eval-if exp env)
+    (if (true? (actual-value (if-predicate exp) env))
+        (eval (if-consequent exp) env)
+        (eval (if-alternative exp) env)))
+#+END_SRC
+*** driver-loop
+#+BEGIN_SRC scheme :tangle yes
+  (define input-prompt ";;; L-Eval input:")
+  (define output-prompt ";;; L-Eval value:")
+
+  (define (driver-loop)
+    (prompt-for-input input-prompt)
+    (let ((input (read)))
+      (let ((output
+             (actual-value input the-global-environment)))
+        (announce-output output-prompt)
+        (user-print output)))
+    (driver-loop))
+#+END_SRC
+** Representing thunks
+
+Essentially, a delayed object *plus* an environment to evaluate it in.
+
+Memoization is achieved in ~force-it~ by changing the tag from ~thunk~
+to ~evaluated-thunk~ the first time it is forced, saving the value,
+and discarding the environment. Subsequent calls to ~force-it~ will
+see the new tag, and simply return the stored value.
+
+#+BEGIN_SRC scheme :tangle yes
+  (define (force-it obj)
+    (if (thunk? obj)
+        (actual-value (thunk-exp obj) (thunk-env obj))
+        obj))
+
+  (define (delay-it exp env)
+    (list 'thunk exp env))
+
+  (define (thunk? obj)
+    (tagged-list? obj 'thunk))
+
+  (define (thunk-exp thunk) (cadr thunk))
+
+  (define (thunk-env thunk) (caddr thunk))
+
+  (define (evaluated-thunk? obj)
+    (tagged-list? obj 'evaluated-thunk))
+
+  (define (thunk-value evaluated-thunk) (cadr evaluated-thunk))
+
+  (define (force-it obj)
+    (cond ((thunk? obj)
+           (let ((result (actual-value
+                          (thunk-exp obj)
+                          (thunk-env obj))))
+             (set-car! obj 'evaluated-thunk)
+             (set-car! (cdr obj) result)  ; replace `exp' with its value
+             (set-cdr! (cdr obj) '())     ; forget unneeded `env'
+             result))
+          ((evaluated-thunk? obj)
+           (thunk-value obj))
+          (else obj)))
+
+#+END_SRC
+** Exercise 4.27
+Suppose we type in the following definitions to the lazy evaluator:
+
+#+BEGIN_SRC scheme
+  (define count 0)
+
+  (define (id x)
+    (set! count (+ count 1))
+    x)
+#+END_SRC
+
+Give the missing values in the following sequence of interactions, and
+explain your answers.
+
+#+BEGIN_QUOTE
+This exercise demonstrates that the interaction between lazy
+evaluation and side effects can be very confusing.  This is just what
+you might expect from the discussion in *Note Chapter 3.
+#+END_QUOTE
+
+#+BEGIN_SRC scheme
+  (define w (id (id 10)))
+#+END_SRC
+
+-
+ #+BEGIN_SRC scheme
+   ;;; L-Eval input:
+   count
+   ;;; L-Eval value:
+   <RESPONSE> 
+ #+END_SRC
+
+ - RESPONSE:: ~1~
+
+   The outer call to ~id~ is evaluated when passed to the primitive
+   ~define~. The inner argument ~(id 10)~ is not evaluated at this
+   time.
+-
+ #+BEGIN_SRC scheme
+   ;;; L-Eval input:
+   w
+   ;;; L-Eval value:
+   <RESPONSE>
+ #+END_SRC
+ - RESPONSE:: ~10~
+   
+   The ~id~ of ~10~ is ~10~.
+-
+ #+BEGIN_SRC scheme
+   ;;; L-Eval input:
+   count
+   ;;; L-Eval value:
+   <RESPONSE>
+ #+END_SRC
+
+ - RESPONSE:: ~2~
+
+   Evaluating ~w~ forces its evaluation, which evaluates ~(id
+   10)~. This increments count again, changing its value to ~2~.
+
+** Exercise 4.28
+~Eval~ uses ~actual-value~ rather than ~eval~ to
+evaluate the operator before passing it to ~apply~, in order to
+force the value of the operator.  Give an example that
+demonstrates the need for this forcing.
+
+** Exercise 4.29
+Exhibit a program that you would expect to run
+much more slowly without memoization than with memoization.  Also,
+consider the following interaction, where the ~id~ procedure is
+defined as in *Note Exercise 4-27:: and ~count~ starts at 0:
+
+#+BEGIN_SRC scheme
+  (define (square x)
+    (* x x))
+#+END_SRC
+
+-
+ #+BEGIN_SRC scheme
+   ;;; L-Eval input:
+   (square (id 10))
+   ;;; L-Eval value:
+   <RESPONSE> 
+ #+END_SRC
+
+-
+ #+BEGIN_SRC scheme
+    ;;; L-Eval input:
+   count
+   ;;; L-Eval value:
+   <RESPONSE>
+ #+END_SRC
+
+ Give the responses both when the evaluator memoizes and when it
+ does not.
+
+** Exercise 4.30
+Cy D. Fect, a reformed C programmer, is worried that some side effects
+may never take place, because the lazy evaluator doesn't force the
+expressions in a sequence.  Since the value of an expression in a
+sequence other than the last one is not used (the expression is there
+only for its effect, such as assigning to a variable or printing),
+there can be no subsequent use of this value (e.g., as an argument to
+a primitive procedure) that will cause it to be forced.  Cy thus
+thinks that when evaluating sequences, we must force all expressions
+in the sequence except the final one.  He proposes to modify
+~eval-sequence~ from section *Note 4-1-1:: to use ~actual-value~
+rather than ~eval~:
+
+#+BEGIN_SRC scheme
+  (define (eval-sequence exps env)
+    (cond ((last-exp? exps) (eval (first-exp exps) env))
+          (else (actual-value (first-exp exps) env)
+                (eval-sequence (rest-exps exps) env))))
+#+END_SRC
+
+a. Ben Bitdiddle thinks Cy is wrong.  He shows Cy the ~for-each~
+   procedure described in *Note Exercise 2-23::, which gives an
+   important example of a sequence with side effects:
+
+   #+BEGIN_SRC scheme
+     (define (for-each proc items)
+       (if (null? items)
+           'done
+           (begin (proc (car items))
+                  (for-each proc (cdr items)))))
+   #+END_SRC
+
+   He claims that the evaluator in the text (with the original
+   ~eval-sequence~) handles this correctly:
+
+   #+BEGIN_SRC scheme
+     ;;; L-Eval input:
+     (for-each (lambda (x) (newline) (display x))
+               (list 57 321 88))
+     57
+     321
+     88
+     ;;; L-Eval value:
+     done   
+   #+END_SRC
+   Explain why Ben is right about the behavior of ~for-each~.
+
+b. Cy agrees that Ben is right about the ~for-each~ example, but says
+   that that's not the kind of program he was thinking about when he
+   proposed his change to ~eval-sequence~.  He defines the following
+   two procedures in the lazy evaluator:
+
+   #+BEGIN_SRC scheme
+     (define (p1 x)
+       (set! x (cons x '(2)))
+       x)
+
+     (define (p2 x)
+       (define (p e)
+         e
+         x)
+       (p (set! x (cons x '(2)))))   
+   #+END_SRC
+     
+   What are the values of ~(p1 1)~ and ~(p2 1)~ with the original
+   ~eval-sequence~?  What would the values be with Cy's proposed
+   change to ~eval-sequence~?
+
+c. Cy also points out that changing ~eval-sequence~ as he
+   proposes does not affect the behavior of the example in part
+   a.  Explain why this is true.
+
+d. How do you think sequences ought to be treated in the lazy
+   evaluator?  Do you like Cy's approach, the approach in the text, or
+   some other approach?
+
+
+** Exercise 4.31
+The approach taken in this section is somewhat unpleasant, because it
+makes an incompatible change to Scheme.  It might be nicer to
+implement lazy evaluation as an "upward-compatible extension", that
+is, so that ordinary Scheme programs will work as before.  We can do
+this by extending the syntax of procedure declarations to let the user
+control whether or not arguments are to be delayed.  While we're at
+it, we may as well also give the user the choice between delaying with
+and without memoization.  For example, the definition
+
+#+BEGIN_SRC scheme
+  (define (f a (b lazy) c (d lazy-memo))
+    ...)
+#+END_SRC
+
+would define ~f~ to be a procedure of four arguments, where the first
+and third arguments are evaluated when the procedure is called, the
+second argument is delayed, and the fourth argument is both delayed
+and memoized.  Thus, ordinary procedure definitions will produce the
+same behavior as ordinary Scheme, while adding the ~lazy-memo~
+declaration to each parameter of every compound procedure will produce
+the behavior of the lazy evaluator defined in this section. Design and
+implement the changes required to produce such an extension to Scheme.
+You will have to implement new syntax procedures to handle the new
+syntax for ~define~.  You must also arrange for ~eval~ or ~apply~ to
+determine when arguments are to be delayed, and to force or delay
+arguments accordingly, and you must arrange for forcing to memoize or
+not, as appropriate.
+* <<4.2.3>> Streams as Lazy Lists
