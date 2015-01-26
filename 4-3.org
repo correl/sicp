@@ -1,0 +1,107 @@
+#+TITLE: 4.3 - Variations on a Scheme — Nondeterministic Computing
+#+STARTUP: indent
+#+OPTIONS: num:nil
+
+* COMMENT Set up source file
+#+BEGIN_SRC scheme :tangle yes
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; 4.3 - Variations on a Scheme — Nondeterministic Computing
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (load "4-2.scheme")
+
+#+END_SRC
+
+#+BEGIN_QUOTE
+Just as the lazy evaluator freed the programmer from the
+details of how values are delayed and forced, the nondeterministic
+program evaluator will free the programmer from the details of how
+choices are made.
+#+END_QUOTE
+* <<4.3.1>> Amb and Search
+
+The new special form ~amb~ returns the value of one of the expressions
+passed to it "ambiguously".
+
+#+BEGIN_SRC scheme :tangle yes
+  (define (require p)
+    (if (not p) (amb)))
+
+  (define (an-element-of items)
+    (require (not (null? items)))
+    (amb (car items) (an-element-of (cdr items))))
+
+  (define (an-integer-starting-from n)
+    (amb n (an-integer-starting-from (+ n 1))))
+#+END_SRC
+
+** Exercise 4.35
+Write a procedure `an-integer-between' that returns an integer between
+two given bounds.  This can be used to implement a procedure that
+finds Pythagorean triples, i.e., triples of integers (i,j,k) between
+the given bounds such that i <= j and i^2 + j^2 = k^2, as follows:
+
+#+BEGIN_SRC scheme
+  (define (a-pythagorean-triple-between low high)
+    (let ((i (an-integer-between low high)))
+      (let ((j (an-integer-between i high)))
+        (let ((k (an-integer-between j high)))
+          (require (= (+ (* i i) (* j j)) (* k k)))
+          (list i j k)))))
+#+END_SRC
+
+----------------------------------------------------------------------
+
+#+BEGIN_SRC scheme
+  (define (an-integer-between low high)
+    (let ((i (an-integer-starting-from (+ low 1))))
+      (require (< i high))
+      i))
+#+END_SRC
+** Exercise 4.36
+*Note Exercise 3-69:: discussed how to generate the stream of _all_
+Pythagorean triples, with no upper bound on the size of the integers
+to be searched.  Explain why simply replacing `an-integer-between' by
+`an-integer-starting-from' in the procedure in *Note Exercise 4-35::
+is not an adequate way to generate arbitrary Pythagorean triples.
+Write a procedure that actually will accomplish this.  (That is, write
+a procedure for which repeatedly typing `try-again' would in principle
+eventually generate all Pythagorean triples.)
+
+** Exercise 4.37
+Ben Bitdiddle claims that the following method for generating
+Pythagorean triples is more efficient than the one in *Note Exercise
+4-35::.  Is he correct?  (Hint: Consider the number of possibilities
+that must be explored.)
+
+#+BEGIN_SRC scheme
+  (define (a-pythagorean-triple-between low high)
+    (let ((i (an-integer-between low high))
+          (hsq (* high high)))
+      (let ((j (an-integer-between i high)))
+        (let ((ksq (+ (* i i) (* j j))))
+          (require (>= hsq ksq))
+          (let ((k (sqrt ksq)))
+            (require (integer? k))
+            (list i j k))))))
+#+END_SRC
+
+* <<4.3.2>> Examples of Nondeterministic Programs
+** Exercise 4.41
+Write an ordinary Scheme program to solve the
+multiple dwelling puzzle.
+
+----------------------------------------------------------------------
+
+*/Nope./*
+* Links
+
+The following is a set of semi-relevant links that came up during the discussion:
+
+- https://aphyr.com/posts/314-computational-techniques-in-knossos
+- https://bernardopires.com/2013/10/try-logic-programming-a-gentle-introduction-to-prolog/
+- http://www.cs.bham.ac.uk/~hxt/research/Logiccolumn8.pdf
+  Continuation, functions and jumps
+- http://double.co.nz/pdf/continuations.pdf
+  Web programming with continuations
+- http://www.codersatwork.com/
