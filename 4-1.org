@@ -408,40 +408,40 @@ Borrowed from [[http://wqzhang.wordpress.com/2009/09/17/sicp-exercise-4-3/][Weiq
   ;; Exercise 4.3
   ;; -------------------------------------------------------------------
 
-  (define eval-table (make-eq-hash-table))
-  (define (get key)
-    (hash-table/get eval-table key #f))
-  (define (put key proc)
-    (hash-table/put! eval-table key proc))
+  (define *op-table* (make-eq-hash-table))
+  (define (get op type)
+    (hash-table/get *op-table* (list op type) #f))
+  (define (put op type proc)
+    (hash-table/put! *op-table* (list op type) proc))
 
   (define (eval exp env)
     (cond ((self-evaluating? exp) exp)
           ((variable? exp) (lookup-variable-value exp env))
-          ((get (car exp))
-           ((get (car exp)) exp env))
+          ((get (car exp) 'eval)
+           ((get (car exp) 'eval) exp env))
           ((application? exp)
            (apply (eval (operator exp) env)
                   (list-of-values (operands exp) env)))
           (else
            (error "Unknown expression type -- EVAL" exp))))
 
-  (put 'quote
+  (put 'quote 'eval
        (lambda (exp env)
          (text-of-quotation exp)))
-  (put 'set!
+  (put 'set! 'eval
        (lambda (exp env)
          (eval-assignment exp env)))
-  (put 'define eval-definition)
-  (put 'if eval-if)
-  (put 'lambda
+  (put 'define 'eval eval-definition)
+  (put 'if 'eval eval-if)
+  (put 'lambda 'eval
        (lambda (exp env)
          (make-procedure (lambda-parameters exp)
                          (lambda-body exp)
                          env)))
-  (put 'begin
+  (put 'begin 'eval
        (lambda (exp env)
          (eval-sequence (begin-actions exp) env)))
-  (put 'cond
+  (put 'cond 'eval
        (lambda (exp env)
          (eval (cond->if exp) env)))
 #+END_SRC
@@ -496,8 +496,8 @@ and ~or~ as derived expressions.
                 (eval-or-operands rest)))))
     (eval-or-operands (operands exp)))
 
-  (put 'and eval-and)
-  (put 'or eval-or)
+  (put 'and 'eval eval-and)
+  (put 'or 'eval eval-or)
 
   ;; Derived expressions
 
@@ -588,7 +588,7 @@ expressions.
               (map cadr var-alist))))
 
 
-  (put 'let
+  (put 'let 'eval
        (lambda (exp env)
          (eval (let->combination exp) env)))
 #+END_SRC
@@ -646,7 +646,7 @@ expressions?
     (nested-let (cadr exp)
                 (cddr exp)))
 
-  (put 'let*
+  (put 'let* 'eval
        (lambda (exp env)
          (eval (let*->nested-lets exp) env)))
 #+END_SRC
@@ -708,7 +708,7 @@ Modify ~let->combination~ of [[Exercise 4.6]] to also support named ~let~.
                                   (cdddr exp)))
           (else (error "Invalid expression -- LET"))))
 
-  (put 'let
+  (put 'let 'eval
        (lambda (exp env)
          (eval (let->combination exp) env)))
 #+END_SRC
