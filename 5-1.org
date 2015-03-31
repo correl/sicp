@@ -1,0 +1,13 @@
+#+TITLE: 5.1 - Designing Register Machines
+#+STARTUP: indent
+#+OPTIONS: num:nil
+
+Building a lisp machine in lisp to execute simple instructions modeled
+in lisp to evaluate, execute, and eventually compile our lisp written
+written in lisp.
+
+* A Language for Describing Register Machines
+* Abstraction in Machine Design
+* Subroutines
+* Using a Stack to Implement Recursion
+* Instruction Summary
